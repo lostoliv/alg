@@ -47,13 +47,14 @@ import numpy as np
 # At the end of the week, this person is sending the observations in a binary
 # message: "001110011100011111010100011..." etc.
 #
-# He needs to choose an encoding so the length of the message is as small as
-# possible and the person receiving the message can decode it.
+# This person needs to choose an encoding so the length of the message is as
+# small as possible and the person receiving the message can decode it.
 #
 # For example, if this person observes 2 American cars, followed by 1 Japanese
 # car, followed by 2 German cars (other), followed by 1 Japanese car then
 # finally 1 Korean car, and this person is using as encoding (00 = Japan,
-# 01 = Korea, 10 = USA, 11 = Other), then the message will be "10100011110001".
+# 01 = Korea, 10 = USA, 11 = Other), then the message will be "10100011110001"
+# (read each bit pair one after another: 10, 10, 00, etc.).
 #
 # Let's illustrate this problem and propose an encoding when this person is in
 # the USA and then another one when this person is in France - tailored for the
@@ -70,7 +71,7 @@ class CCOO(IntEnum):
   OTHER = 3,
   COUNT = 4 # Number of classes
 
-# Distribution of cars in the US = uniform distribution
+# Distribution of cars in the USA = uniform distribution
 DIST_USA = {
   CCOO.JAPAN: 0.25,
   CCOO.KOREA: 0.25,
@@ -78,13 +79,13 @@ DIST_USA = {
   CCOO.OTHER: 0.25
 }
 
-# Number of cars observed in 1 week
+# Number of cars observed in 1 week in the USA
 NUM_CARS_USA = 100000
 
 # Proposed encoding of each cars, based on the COO.
 # Each cars is encoded with 2 bits as we have a uniform distribution so we
 # can't do better than this naive encoding.
-# On average the per-car bit size will be:
+# On average the per car bits size will be:
 #   2 * 0.25 + 2 * 0.25 + 2 * 0.25 + 2 * 0.25 = 2.0
 # (which should be close to the entropy of the distribution, using log2)
 ENCODING_USA = {
@@ -102,7 +103,7 @@ DIST_FR = {
   CCOO.OTHER: 0.6 # French cars?
 }
 
-# Number of cars observed in 1 week
+# Number of cars observed in 1 week in France
 NUM_CARS_FR = 10000
 
 # Proposed encoding of each cars, based on COO.
@@ -113,28 +114,32 @@ NUM_CARS_FR = 10000
 # Let's see how we could make this work if each car is encoded with 1, 2 or 3
 # bits.
 # If we read less than 3 bits (1 or 2) and it ends with 0, then we stop.
-# For example if we need to read the message "100001011110", then the first car
-# is encoded with "10" (we read at most 3 bits and stop when we find a 0).
-# With the message "010001001010" we just read 1 bit (0).
+# For example if we need to read the message "100001011110", then to decode the
+# first car we read the first 2 bits "10" (we read at most 3 bits and stop when
+# we find a zero).
+# With the message "010001001010", to decode the first car we just read the
+# first bit (0) and stop because it's zero.
 # With the message "111111111111" we read 3 bits (111) and stop because we
 # reached 3 bits.
+# The message "010001110011010000" means "Other", "Japan", "Other", "Other",
+# "USA", "Other", "Other", "Korea", "Japan", "Other", "Other", "Other".
 # We encode with less bits the cars with the highest probability:
 #   "Other" is encoded with 1 bit (0, finishing with a 0)
 #   "Japan" is encoded with 2 bits (10, finishing with a 0)
-#   "Korea" and "US", which are less frequent, are encoded with 3 bits
+#   "Korea" and "USA", which are less frequent, are encoded with 3 bits
 # (110 and 111 - does not contain a 0 before the 3rd bit so it won't stop
 # before reading the 3 bits entirely).
 # You can see that the encoding function is injective and we will always be
 # able to decode any message.
-# On average the per-car bit size will be:
+# On average the per car bits size will be:
 #   2 * 0.2 + 3 * 0.1 + 3 * 0.1 + 1 * 0.6 = 1.6
-# (which should be less than the naive encoding used for the USA and close to
-# the entropy of the distribution, using log2)
+# (which is less and more optimal than using 2 bits with the naive encoding
+# used for the USA and close to the entropy of the distribution, using log2)
 ENCODING_FR = {
-  CCOO.JAPAN: '10', # Second highest probability: use 2 bits
+  CCOO.JAPAN: '10', # Second highest probability: use 2 bits (finishing with 0)
   CCOO.KOREA: '110', # Lower probability: use 3 bits
   CCOO.USA: '111', # Lower probability: use 3 bits
-  CCOO.OTHER: '0' # Highest probability: use 1 bit
+  CCOO.OTHER: '0' # Highest probability: use 1 bit (finishing with 0)
 }
 
 
@@ -264,15 +269,15 @@ class TestEntropy(unittest.TestCase):
 
     print('USA:')
     print(f'  Entropy = {entropy_usa}')
-    print(f'  Bit-per-car (USA encoding) = {bits_per_car_usa_usa}')
-    print(f'  Bit-per-car (FR encoding) = {bits_per_car_usa_fr}')
+    print(f'  Bits per car (USA encoding) = {bits_per_car_usa_usa}')
+    print(f'  Bits per car (FR encoding) = {bits_per_car_usa_fr}')
     print(f'  Cross-Entropy (USA, FR) = {cross_entropy_usa_fr}')
     print(f'  KL divergence (USA, FR) = {kld_usa_fr}')
     print()
     print('France:')
     print(f'  Entropy = {entropy_fr}')
-    print(f'  Bit-per-car (FR encoding) = {bits_per_car_fr_fr}')
-    print(f'  Bit-per-car (USA encoding) = {bits_per_car_fr_usa}')
+    print(f'  Bits per car (FR encoding) = {bits_per_car_fr_fr}')
+    print(f'  Bits per car (USA encoding) = {bits_per_car_fr_usa}')
     print(f'  Cross-Entropy (FR, USA) = {cross_entropy_fr_usa}')
     print(f'  KL divergence (FR, USA) = {kld_fr_usa}')
 
