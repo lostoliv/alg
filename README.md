@@ -9,3 +9,5 @@ Some algorithm tutorials and toy examples.
 [Newton / Gauss-Newton methods](newton/)
 
 [Gradient-based optimization](gradient/)
+
+[Entropy](entropy/)

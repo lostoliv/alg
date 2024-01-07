@@ -1,8 +1,10 @@
+# Fluid simulation readvection
+
 This technical paper was written in 2009 to document the fluid retimer / readvection algorithm that I developed for the movie [Avatar](https://www.avatar.com/movies/avatar).
 
 This technique only covers grid / voxel-based fluids, not particule / SPH-based fluids.
 
-# Voxel grid structure
+## Voxel grid structure
 
 The first step of a retimer is to have a very good (i.e. very fast) voxel grid structure. Millions of reads/computations will be done so we'll try to get something fast and optimized.
 
@@ -38,7 +40,7 @@ In 3d, for any 3d point inside the grid, we can find in which voxel the point is
 
 Once you have everything needed, a special class for 3d grids can be created as ours fluids are defined as 3d grids most of the time: you can write a class deriving from `MyVoxGrid<3>` (3d grid) where extra utility functions will be added, related for example to loading/saving fluids from/to gto/pdc cache (or any other file format) as well as the retimer / readvection function that we'll now describe.
 
-# Retiming / readvection
+## Retiming / readvection
 
 Now comes the retiming issue: you have a voxel grid cache at frame `t` and one at frame `(t+1)`. You want to know what its state is at frame `t+n` (`0.0 < n < 1.0`). The result needs to be as close to what you would get is you were simulating it. If you retime with a time scale factor of 0.1 (10x slower), you will need to retime 9 extra caches per frame at `t+0.1`, `t+0.2`, ..., `t+0.9`.
 
@@ -82,7 +84,7 @@ You will then have 3 steps of size 0.1:
 * Step2: `P01 = P00 - (n/3) * V0(P00)`
 * Step3: `P02 = P01 - (n/3) * V0(P01)`
 
-Your new, more acurate `P0` will be `P02` (last step). You will have a similar result for the backward advection with 7 steps of size 0.1. For each step you will have to sample the velocity at the new step­position which will be used for the next step. You have to find a good value for the number of steps you want, not too small to give you enough details and not too high to be fast enough.
+Your new, more acurate `P0` will be `P02` (last step). You will have a similar result for the backward advection with 7 steps of size 0.1. For each step you will have to sample the velocity at the new ­position which will be used for the next step. You have to find a good value for the number of steps you want, not too small to give you enough details and not too high to be fast enough.
 
 The next idea is to try to reduce the noise you will get from the retiming process. For this we will simulate motion blur (centered). We will specify a shutter speed (`SS`, for example 0.25) and a number of time steps (`nts`, generally 3). Without motion blur, you advect each point at time `n` (forward) and `1 - n` (backward). Instead of doing 2 advections per point, you will do `nts * 2` advections (i.e. 6 if `nts` is 3).
 
@@ -96,11 +98,11 @@ Each time step will give you a value. The final value will simply be the sum of 
 
 Please note that this retiming algorithm can be multi­threaded as we'll see next.
 
-# Multi-threading
+## Multi-threading
 
 This technique can be easily multithreaded since each voxel of the fluid is independent from its neighbors. You can randomly create blocks of voxels and each thread will compute each pool of voxels. In practice, each pool of voxels will be neighbors (in the chosen memory layout) to reduce cache misses and memory lookups.
 
-# Testing
+## Testing
 
 To test the quality of the algorithm, you can compute a slow fluid simulation with 101 frames (0 to 100) and only keep every 1/10 cache files: `cache0`, `cache10`, `cache20` ... `cache100`. Then simply retime this cache sequence with a time scale factor of 0.1.
 
@@ -108,7 +110,7 @@ If your algorithm is perfect, you should retrieve your original simulation. In p
 
 Do the same test with various simulations (some slower, some faster, some with a lot of turbulences, etc.) and compare a retimed cache with the simulated one to make sure your readvection behave correctly with various edge cases.
 
-# Results
+## Results
 
 Many of the Avatar explosions and fires simulations have been retimed through this algorithm. A library with key original simulations was created and many retimed versions were processed for each shots of the movie to add diversity and avoid the cost of computing per shot simulations as the cost of retiming an existing simulation is a tiny fraction of the cost of simulation it.
 
